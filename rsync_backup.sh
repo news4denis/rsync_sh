@@ -377,11 +377,14 @@ fi
 
 [ $? -ne 0 ] && echo "!!!!! FAILED !!!!!" && exit 1 || echo "DONE"
 
+echo "===> Here is the crontab list:"
+crontab -l
 echo
 echo "================= CONGRATULATION ======================"
+echo "
+Enjoy!"
+
 #################################################################
 ### Enjoy using this script!
 ### Please contact me in case of any errors: denisb@uk2group.com
 #################################################################
-echo "
-Enjoy!"
