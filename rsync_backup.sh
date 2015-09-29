@@ -183,13 +183,18 @@ Weekly_cron_time()
   if [ $cron_hour -eq 22 -o $cron_hour -eq 23 ]; then
      ((cron_hour-=22))
      ((cron_week+=1))
+  
      if [ $cron_week -eq 7 ]; then
         cron_week=0
      fi
-  else
-     ((cron_hour+=2)
-  fi
   
+  else
+  
+     ((cron_hour+=2))
+  
+  fi
+ 
+ 
   MYSQL_CRONTIME_WEEKLY="$cron_min $cron_hour * * $cron_week"
   MYSQL_CRONTIME_DAILY="$cron_min $cron_hour * * *"
 }
