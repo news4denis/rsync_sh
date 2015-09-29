@@ -15,8 +15,8 @@ read -e -p "Hostname:" -i "$HOSTNAME" RSYNC_HOST
 #Determining time for a backup
 echo "========================== Preliminary information =============================="
 echo
-echo "===> Current time: `date`"
-echo "===> Current time zone: `date +'%:z %Z'`"
+echo "--- Current time: `date`"
+echo "--- Current time zone: `date +'%:z %Z'`"
 echo
 #################################################################
 ### Detect a distro
@@ -24,18 +24,18 @@ echo
 
 # DISTR variables description ("cpanel", "plesk", "ispm", "unknown")
 
-echo -n "===> "
+echo -n "--- "
 lsb_release -ds 2>/dev/null || cat /etc/*release 2>/dev/null | head -n1 || uname -om
  if [ -f /usr/local/cpanel/cpanel ]; then
-    echo "===> cPanel:" `/usr/local/cpanel/cpanel -V`
+    echo "--- cPanel:" `/usr/local/cpanel/cpanel -V`
     DISTR="cpanel"
     MYSQL_CRED="mysql"
  elif [ -f /usr/local/psa/version ]; then
-    echo "===> Plesk v."`cat /usr/local/psa/version`
+    echo "--- Plesk v."`cat /usr/local/psa/version`
     DISTR="plesk"
     MYSQL_CRED="mysql -uadmin -p`cat /etc/psa/.psa.shadow`"
  elif [ -f /usr/local/ispmgr/bin/ispmgr ]; then
-    echo "===>" `/usr/local/ispmgr/bin/ispmgr -v`
+    echo "---" `/usr/local/ispmgr/bin/ispmgr -v`
     DISTR="ispm"
     MYSQL_CRED="mysql -u"`awk '$1=="User" {print$2}' /usr/local/ispmgr/etc/ispmgr.conf`" mysql -p"`awk '$1=="Password" {print$2}' /usr/local/ispmgr/etc/ispmgr.conf`""
  else
@@ -62,7 +62,7 @@ for i in $(seq 1 3)
      echo
      echo -n "----- Testing connection to Mysql: "
      $MYSQL_CRED -e exit 2>&-
-     [ $? -eq 0 ] && echo "SUCCESS" && break || echo "FAILED !!!!!" && [ $i -eq 1 ] &&
+     [ $? -eq 0 ] && echo "SUCCESS" && echo && break || echo "FAILED !!!!!" && echo && [ $i -eq 1 ] &&
 
      while [ -z $prompt ]; do
         echo
@@ -96,7 +96,7 @@ Daily_cron_time()
   incr=0
   while [[ $incr != 1 ]]; do
 
-    read -e -p "Set minutes for the cron [0-59]):" -i "0" cron_min
+    read -e -p "==> Set minutes for the cron [0-59]):" -i "0" cron_min
  
     #check minutes
       if [[ "$cron_min" =~ ^([0-5]?[0-9])$ ]]; then
@@ -110,7 +110,7 @@ Daily_cron_time()
   incr=0
   while [[ $incr != 1 ]]; do
 
-    read -p "Set hours for the cron [0-23]):" cron_hour
+    read -p "==> Set hours for the cron [0-23]):" cron_hour
 
     #check hours
       if [[ "$cron_hour" =~ ^([01]?[0-9]|2[0-3])$ ]]; then
@@ -140,7 +140,7 @@ Weekly_cron_time()
  incr=0
   while [[ $incr != 1 ]]; do
     echo
-    read -e -p "Set minutes for the cron [0-59]): " -i "0" cron_min
+    read -e -p "==> Set minutes for the cron [0-59]): " -i "0" cron_min
 
     #check minutes
       if [[ "$cron_min" =~ ^([0-5]?[0-9])$ ]]; then
@@ -154,7 +154,7 @@ Weekly_cron_time()
   incr=0
   while [[ $incr != 1 ]]; do
     echo
-    read -p "Set hours for the cron [0-23]: " cron_hour
+    read -p "==> Set hours for the cron [0-23]: " cron_hour
 
     #check hours
       if [[ "$cron_hour" =~ ^([01]?[0-9]|2[0-3])$ ]]; then
@@ -168,7 +168,7 @@ Weekly_cron_time()
   incr=0
   while [[ $incr != 1 ]]; do
     echo
-    read -p "Set a day of the week for the cron (0=Sunday, 1-Monday)[0-6]: " cron_week
+    read -p "==> Set a day of the week for the cron (0=Sunday, 1-Monday)[0-6]: " cron_week
 
     #check the day of the week
       if [[ "$cron_week" =~ ^([0-6])$ ]]; then
@@ -179,13 +179,15 @@ Weekly_cron_time()
   done
 
   CRONTIME="$cron_min $cron_hour * * $cron_week"
-  
+ 
   if [ $cron_hour -eq 22 -o $cron_hour -eq 23 ]; then
      ((cron_hour-=22))
      ((cron_week+=1))
      if [ $cron_week -eq 7 ]; then
         cron_week=0
      fi
+  else
+     ((cron_hour+=2)
   fi
   
   MYSQL_CRONTIME_WEEKLY="$cron_min $cron_hour * * $cron_week"
@@ -240,7 +242,7 @@ EOF
 # Generating an SSH RSA key pair
 
 if [ ! -f ~/.ssh/id_rsa.pub ]; then
-   echo -n "===> Generating an SSH RSA key pair :"
+   echo -n "--- Generating an SSH RSA key pair :"
    ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa | 1>&- 2>&-
    if [ $? -eq 0 ]; then
       echo "DONE"
@@ -257,27 +259,28 @@ fi
 SSHpassInstall()
 {
 for i in $(seq 1 2)
-
-  if test -x `which curl`; then
-     cd /usr/src
-     `which curl` -O -L http://sourceforge.net/projects/sshpass/files/sshpass/1.05/sshpass-1.05.tar.gz
-     `which tar` -xzf sshpass-1.05.tar.gz
-     cd sshpass-1.05
-     ./configure
-     make
-     make install
-     break
-  else
-      echo -n "===> Curl isn't installed. Installing curl: "
-      yum install -y curl 1>/dev/null
-      [ $? -eq 0 ] && echo "SUCCESS" || echo "FAILED" && exit 1
-  fi
+  do
+     if which curl >/dev/null; then
+        cd /usr/src
+        `which curl` -O -L http://sourceforge.net/projects/sshpass/files/sshpass/1.05/sshpass-1.05.tar.gz 2>/dev/null
+        `which tar` -xzf sshpass-1.05.tar.gz
+        cd sshpass-1.05
+        ./configure >/dev/null
+        make >/dev/null
+        make install >/dev/null
+        break
+     else
+         echo -n "--- Curl isn't installed. Installing curl: "
+         yum install -y curl 1>/dev/null
+         [ $? -eq 0 ] && echo "SUCCESS" || echo "FAILED" && exit 1
+     fi
+  done
 }
 
 which sshpass 1>&- 2>&-
 
 if [ $? -eq 0 -o -s /usr/bin/sshpass -o -s /usr/local/bin/sshpass ]; then
-   echo "===> sshpass utility is already installed"
+   echo "--- sshpass utility is already installed"
 else
    case "$OS" in
      deb ) apt-get install --force-yes sshpass 1>/dev/null;;
@@ -294,7 +297,7 @@ copy_key(){
 ## running the copy_key function
 # give 4 tries
 echo
-echo -n "===> Copying and marging keys :"
+echo -n "--- Copying and marging keys :"
 
 for i in $(seq 1 4)
   do
@@ -315,7 +318,7 @@ for i in $(seq 1 4)
 ### Test rsync by syncing /etc folder
 #################################################################
 echo
-echo -n "===> Testing rsync syncing the /etc folder :"
+echo -n "--- Testing rsync syncing the /etc folder :"
   
 for i in $(seq 1 2)
   do
@@ -326,14 +329,14 @@ for i in $(seq 1 2)
           break
        else
           `which rsync`
-          [ $? -eq 0 ] && echo "===> It looks like the rsync utility is installed" || echo "===> It looks like the rsync utility is not installed" &&
+          [ $? -eq 0 ] && echo "--- It looks like the rsync utility is installed" || echo "--- It looks like the rsync utility is not installed" &&
            
           case "$OS" in
             deb ) apt-get install --force-yes rsync 1>/dev/null;;
             rpm ) yum install -y rsync 1>/dev/null;;
           esac
      
-          [ $? -ne 0 ] && echo "!!!!! something went wrong with the rsync utility installation !!!!!" && exit 1 || echo "===> The rsync utility has been installed"
+          [ $? -ne 0 ] && echo "!!!!! something went wrong with the rsync utility installation !!!!!" && exit 1 || echo "--- The rsync utility has been installed"
        fi
   done
 
@@ -343,7 +346,7 @@ for i in $(seq 1 2)
 
   while [ -z $prompt ]; do
      echo
-     read -e -p "Is it a Daily(d) or Weekly(w) backup (d/w)?" -i "d" choice;
+     read -e -p "==> Is it a Daily(d) or Weekly(w) backup (d/w)?" -i "d" choice;
      case "$choice" in
        d|D ) prompt=true; Daily_cron_time; Mysql_backup "Daily" "$MYSQL_CRED"; Mysql_backup "Weekly" "$MYSQL_CRED"; break;;
        w|W ) prompt=true; Weekly_cron_time; Mysql_backup "Daily" "$MYSQL_CRED"; Mysql_backup "Weekly" "$MYSQL_CRED"; break;;
@@ -376,14 +379,13 @@ if [[ $do_mysql -eq "yes" ]]; then
 fi
 
 [ $? -ne 0 ] && echo "!!!!! FAILED !!!!!" && exit 1 || echo "DONE"
-
-echo "===> Here is the crontab list:"
-crontab -l
 echo
+echo "=============== Here is the crontab list =============="
+crontab -l
 echo "================= CONGRATULATION ======================"
 echo "
 Enjoy!"
-
+echo
 #################################################################
 ### Enjoy using this script!
 ### Please contact me in case of any errors: denisb@uk2group.com
