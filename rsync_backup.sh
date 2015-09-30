@@ -13,11 +13,13 @@ read -p "Password: " RSYNC_PASSWD
 read -e -p "Hostname:" -i "$HOSTNAME" RSYNC_HOST
 
 #Determining time for a backup
+
 echo "========================== Preliminary information =============================="
 echo
 echo "--- Current time: `date`"
 echo "--- Current time zone: `date +'%:z %Z'`"
 echo
+
 #################################################################
 ### Detect a distro
 #################################################################
@@ -189,14 +191,12 @@ Weekly_cron_time()
      fi
   
   else
-  
      ((cron_hour+=2))
-  
   fi
- 
  
   MYSQL_CRONTIME_WEEKLY="$cron_min $cron_hour * * $cron_week"
   MYSQL_CRONTIME_DAILY="$cron_min $cron_hour * * *"
+
 }
 
 #################################################################
@@ -388,7 +388,7 @@ echo
 echo "=============== Here is the crontab list =============="
 crontab -l
 echo "================= CONGRATULATION ======================"
-echo "
+echo " 
 Enjoy!"
 echo
 #################################################################
