@@ -14,10 +14,11 @@ read -e -p "Hostname:" -i "$HOSTNAME" RSYNC_HOST
 
 #Determining time for a backup
 
-echo "========================== Preliminary information =============================="
 echo
-echo "--- Current time: `date`"
-echo "--- Current time zone: `date +'%:z %Z'`"
+echo "=============== Preliminary information ==============="
+echo
+echo "- Current time: `date`"
+echo "- Current time zone: `date +'%:z %Z'`"
 echo
 
 #################################################################
@@ -26,18 +27,18 @@ echo
 
 # DISTR variables description ("cpanel", "plesk", "ispm", "unknown")
 
-echo -n "--- "
+echo -n "- "
 lsb_release -ds 2>/dev/null || cat /etc/*release 2>/dev/null | head -n1 || uname -om
  if [ -f /usr/local/cpanel/cpanel ]; then
-    echo "--- cPanel:" `/usr/local/cpanel/cpanel -V`
+    echo "- cPanel:" `/usr/local/cpanel/cpanel -V`
     DISTR="cpanel"
     MYSQL_CRED="mysql"
  elif [ -f /usr/local/psa/version ]; then
-    echo "--- Plesk v."`cat /usr/local/psa/version`
+    echo "- Plesk v."`cat /usr/local/psa/version`
     DISTR="plesk"
     MYSQL_CRED="mysql -uadmin -p`cat /etc/psa/.psa.shadow`"
  elif [ -f /usr/local/ispmgr/bin/ispmgr ]; then
-    echo "---" `/usr/local/ispmgr/bin/ispmgr -v`
+    echo "- " `/usr/local/ispmgr/bin/ispmgr -v`
     DISTR="ispm"
     MYSQL_CRED="mysql -u"`awk '$1=="User" {print$2}' /usr/local/ispmgr/etc/ispmgr.conf`" mysql -p"`awk '$1=="Password" {print$2}' /usr/local/ispmgr/etc/ispmgr.conf`""
  else
@@ -55,6 +56,8 @@ lsb_release -ds 2>/dev/null || cat /etc/*release 2>/dev/null | head -n1 || uname
     CRONTAB="/var/spool/cron/crontabs/root"
  fi
 
+echo
+echo "======================================================="
 #################################################################
 ### Enabling MySQL dumps
 #################################################################
@@ -62,7 +65,7 @@ lsb_release -ds 2>/dev/null || cat /etc/*release 2>/dev/null | head -n1 || uname
 for i in $(seq 1 3)
   do
      echo
-     echo -n "----- Testing connection to Mysql: "
+     echo -n "* Testing connection to Mysql: "
      $MYSQL_CRED -e exit 2>&-
      [ $? -eq 0 ] && echo "SUCCESS" && echo && break || echo "FAILED !!!!!" && echo && [ $i -eq 1 ] &&
 
@@ -97,7 +100,7 @@ Daily_cron_time()
 {
   incr=0
   while [[ $incr != 1 ]]; do
-
+    echo
     read -e -p "==> Set minutes for the cron [0-59]):" -i "0" cron_min
  
     #check minutes
@@ -108,10 +111,10 @@ Daily_cron_time()
          continue
       fi
   done
-  
+
   incr=0
   while [[ $incr != 1 ]]; do
-
+    echo
     read -p "==> Set hours for the cron [0-23]):" cron_hour
 
     #check hours
@@ -152,7 +155,7 @@ Weekly_cron_time()
          continue
       fi
   done
-
+    
   incr=0
   while [[ $incr != 1 ]]; do
     echo
@@ -216,20 +219,28 @@ dt=\`date +"%d.%m.%Y"\ "%T"\`
 # get databases
 
 DB_EXCLUDE='Database|information_schema|eximstats|cphulkd|horde|modsec|mysql|leechprotect|performance_schema|roundcube|whmxfer'
-dbs=\`echo 'show databases;' | $2 | grep -vE $DB_EXCLUDE\`
+dbs=\`echo 'show databases;' | $2 | grep -vE \$DB_EXCLUDE\`
 
 # make target directory
 
 [ -d /usr/local/src/mysql_dumps_$1 ] || mkdir -p /usr/local/src/mysql_dumps_$1
 
-for db in $dbs;
+for db in \$dbs;
+
 do
-  echo -n \"[$dt] making a mysqldump of [$db]: \"
-  mysqldump --opt --databases $db | gzip > /usr/local/src/mysql_dumps_$1/$db.sql.gz
-  [[ $? -eq 0 ]] echo "DONE" || echo "FAILED"
+
+  echo -n "[\$dt] making a mysqldump of [\$db]: "
+  mysqldump --opt --databases \$db | gzip > /usr/local/src/mysql_dumps_$1/\$db.sql.gz
+
+  if [ $? -eq 0 ]; then
+     echo "DONE"
+  else
+     echo "FAILED"
+  fi
+
 done
 
-echo -n \"[$dt] sending $1 MYSQL DUMPs to the RSYNC backup server: \"
+echo -n "[\$dt] sending $1 MYSQL DUMPs to the RSYNC backup server: "
 
 rsync -avz -e ssh /usr/local/src/mysql_dumps_$1/* $RSYNC_USER@rsync1.cloudkeeper.net:$RSYNC_HOST/mysql_dumps_$1/
 
@@ -247,7 +258,7 @@ EOF
 # Generating an SSH RSA key pair
 
 if [ ! -f ~/.ssh/id_rsa.pub ]; then
-   echo -n "--- Generating an SSH RSA key pair :"
+   echo -n "* Generating an SSH RSA key pair :"
    ssh-keygen -t rsa -N '' -f ~/.ssh/id_rsa | 1>&- 2>&-
    if [ $? -eq 0 ]; then
       echo "DONE"
@@ -275,7 +286,7 @@ for i in $(seq 1 2)
         make install >/dev/null
         break
      else
-         echo -n "--- Curl isn't installed. Installing curl: "
+         echo -n "* Curl isn't installed. Installing curl: "
          yum install -y curl 1>/dev/null
          [ $? -eq 0 ] && echo "SUCCESS" || echo "FAILED" && exit 1
      fi
@@ -285,7 +296,7 @@ for i in $(seq 1 2)
 which sshpass 1>&- 2>&-
 
 if [ $? -eq 0 -o -s /usr/bin/sshpass -o -s /usr/local/bin/sshpass ]; then
-   echo "--- sshpass utility is already installed"
+   echo "* sshpass utility is already installed"
 else
    case "$OS" in
      deb ) apt-get install --force-yes sshpass 1>/dev/null;;
@@ -302,7 +313,7 @@ copy_key(){
 ## running the copy_key function
 # give 4 tries
 echo
-echo -n "--- Copying and marging keys :"
+echo -n "* Copying and marging keys: "
 
 for i in $(seq 1 4)
   do
@@ -323,7 +334,7 @@ for i in $(seq 1 4)
 ### Test rsync by syncing /etc folder
 #################################################################
 echo
-echo -n "--- Testing rsync syncing the /etc folder :"
+echo -n "* Testing rsync syncing the /etc folder: "
   
 for i in $(seq 1 2)
   do
@@ -334,14 +345,14 @@ for i in $(seq 1 2)
           break
        else
           `which rsync`
-          [ $? -eq 0 ] && echo "--- It looks like the rsync utility is installed" || echo "--- It looks like the rsync utility is not installed" &&
+          [ $? -ne 0 ] &&
            
           case "$OS" in
             deb ) apt-get install --force-yes rsync 1>/dev/null;;
             rpm ) yum install -y rsync 1>/dev/null;;
           esac
      
-          [ $? -ne 0 ] && echo "!!!!! something went wrong with the rsync utility installation !!!!!" && exit 1 || echo "--- The rsync utility has been installed"
+          [ $? -ne 0 ] && echo "FAILED!!!!! something went wrong with the rsync utility installation !!!!!" && exit 1
        fi
   done
 
@@ -358,14 +369,16 @@ for i in $(seq 1 2)
        * ) prompt=false; echo "set \"d\" or \"w\""; continue;;
      esac
    done
-   prompt=;
 
+   prompt=;
+   
 #################################################################
 ### Setting up cron lines
 #################################################################
 
 echo
-echo -n "----- Setting up cron lines: "
+echo -n "* Setting up cron lines: "
+
 # for main Rsync
 
 echo "$CRONTIME `which rsync` -avz --delete --exclude=virtfs --exclude=tmp --exclude=/tmp --exclude=/lost+found \
@@ -387,11 +400,10 @@ fi
 echo
 echo "=============== Here is the crontab list =============="
 crontab -l
-echo "================= CONGRATULATION ======================"
+echo "======================================================="
 echo " 
-Enjoy!"
+That's it. Enjoy!"
 echo
 #################################################################
-### Enjoy using this script!
 ### Please contact me in case of any errors: denisb@uk2group.com
 #################################################################
