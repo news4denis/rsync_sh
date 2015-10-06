@@ -63,6 +63,7 @@ echo "======================================================="
 #################################################################
 
 for i in $(seq 1 3)
+
   do
      echo
      echo -n "* Testing connection to Mysql: "
@@ -71,7 +72,8 @@ for i in $(seq 1 3)
 
      while [ -z $prompt ]; do
         echo
-        read -e -p "Do you want to enable MySQL dumps (y/n)?" -i "y" choice;
+        read -e -p "==> Do you want to enable MySQL dumps (y/n)?" -i "y" choice
+        echo
         case "$choice" in
           y|Y|yes|YES ) prompt=true; do_mysql="yes"; break;;
           n|N|no|NO ) prompt=true; do_mysql="no"; break 2;;
@@ -80,14 +82,17 @@ for i in $(seq 1 3)
      done
 
      [ $i -eq 2 ] && echo "
-     !!!!! Try using password with single quotes ''
+     !!!!! Make sure you entered the correct credentials. Also, try using password with the single quotes ''
      "
      [ $i -eq 3 ] && echo "
      !!!!! MySQL backups have been skipped !!!!!
-     " && break
-     read -p "Enter a MySQL admin User: " mysql_user
-     read -p "Enter a MySQL admin Password: " mysql_passwd
+     " && do_mysql="no" && break
+     read -p "==> Enter a MySQL admin User: " mysql_user
+     echo
+     read -p "==> Enter a MySQL admin Password: " mysql_passwd
+
      MYSQL_CRED="mysql -u$mysql_user mysql -p$mysql_passwd"
+
   done
 
 prompt=;
@@ -384,7 +389,7 @@ echo -n "* Setting up cron lines: "
 echo "$CRONTIME `which rsync` -avz --delete --exclude=virtfs --exclude=tmp --exclude=/tmp --exclude=/lost+found \
 --exclude=/proc --exclude=/sys --exclude=/dev --exclude=tmpDSK -e ssh / $RSYNC_USER@rsync1.cloudkeeper.net:$RSYNC_HOST/ > /var/log/rsync.log 2>&1" >> $CRONTAB
 
-if [[ $do_mysql -eq "yes" ]]; then
+if [ $do_mysql -eq "yes" ]; then
 
    # for Daily MySQL backups
 
